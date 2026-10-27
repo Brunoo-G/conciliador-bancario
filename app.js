@@ -154,19 +154,44 @@ function conciliar(mayor, banco, tolMonto, tolDias) {
 
 /* ---------- UI ---------- */
 
+const ico = (id) => `<svg><use href="#i-${id}"/></svg>`;
+const ETIQUETAS = { ok: 'Conciliado', mayor: 'Solo en mayor', banco: 'Solo en banco' };
+const ICONO_ESTADO = { ok: 'check', mayor: 'alert', banco: 'x' };
+const ICONO_ORIGEN = { Ambos: 'check', Mayor: 'book', Banco: 'bank' };
+
+let toastTimer;
+function aviso(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function marcarPaso(n) {
+  document.querySelectorAll('.steps li').forEach((li) => {
+    const k = +li.dataset.step;
+    li.classList.toggle('active', k === n);
+    li.classList.toggle('done', k < n);
+  });
+}
+
 function configurarCarga(tipo, inputId, dropId, hintId) {
-  const input = $(inputId), drop = $(dropId);
+  const input = $(inputId), drop = $(dropId), hint = $(hintId);
   const cargar = async (file) => {
     if (!file) return;
-    $(hintId).textContent = 'Leyendo…';
+    drop.classList.remove('loaded', 'error');
+    hint.innerHTML = `${ico('file')}Leyendo…`;
     try {
       state[tipo] = await leerArchivo(file);
-      $(hintId).textContent = `${file.name} · ${state[tipo].rows.length} filas`;
+      if (!state[tipo].rows.length) throw new Error('vacío');
+      hint.innerHTML = `${ico('check')}${escapar(file.name)} · ${state[tipo].rows.length} filas`;
       drop.classList.add('loaded');
       renderMapeo();
     } catch {
-      $(hintId).textContent = 'No se pudo leer el archivo';
-      drop.classList.remove('loaded');
+      state[tipo] = null;
+      hint.innerHTML = `${ico('alert')}No pudimos leer el archivo`;
+      drop.classList.add('error');
     }
   };
   input.addEventListener('change', (e) => cargar(e.target.files[0]));
@@ -191,14 +216,18 @@ function renderMapeo() {
       const sel = document.createElement('select');
       sel.dataset.tipo = tipo;
       sel.dataset.campo = c.key;
-      sel.innerHTML = '<option value="">—</option>' +
+      sel.innerHTML = '<option value="">— Sin asignar —</option>' +
         headers.map((h) => `<option>${escapar(h)}</option>`).join('');
       sel.value = adivinarColumna(headers, c.pistas);
+      sel.classList.toggle('filled', !!sel.value);
+      sel.addEventListener('change', () => sel.classList.toggle('filled', !!sel.value));
       label.appendChild(sel);
       cont.appendChild(label);
     }
   }
   $('mapping').hidden = false;
+  marcarPaso(2);
+  $('mapping').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function leerMapa(tipo) {
@@ -215,39 +244,58 @@ function renderResultados() {
   const r = state.resultado;
   const cuenta = (e) => r.filter((x) => x.estado === e).length;
   const suma = (e) => r.filter((x) => x.estado === e).reduce((a, x) => a + x.monto, 0);
-  $('stOk').textContent = cuenta('ok');
-  $('stMayor').textContent = cuenta('mayor');
-  $('stBanco').textContent = cuenta('banco');
-  $('stDif').textContent = fmtMonto(suma('mayor') - suma('banco'));
+  const ok = cuenta('ok'), soloM = cuenta('mayor'), soloB = cuenta('banco');
+  const totalMayor = ok + soloM;
+  const pct = totalMayor ? Math.round((ok / totalMayor) * 100) : 0;
 
-  const etiquetas = { ok: 'Conciliado', mayor: 'Solo en mayor', banco: 'Solo en banco' };
+  $('stOk').textContent = ok;
+  $('stMayor').textContent = soloM;
+  $('stBanco').textContent = soloB;
+  $('stDif').textContent = fmtMonto(suma('mayor') - suma('banco'));
+  $('cAll').textContent = r.length;
+  $('cOk').textContent = ok;
+  $('cMayor').textContent = soloM;
+  $('cBanco').textContent = soloB;
+  $('barOk').style.width = pct + '%';
+  $('resumen').textContent = soloM + soloB === 0
+    ? `Todo coincide: ${ok} movimientos conciliados.`
+    : `${pct}% del libro mayor está conciliado. Quedan ${soloM + soloB} movimientos por revisar.`;
+
   const filas = state.filtro === 'all' ? r : r.filter((x) => x.estado === state.filtro);
   $('tbody').innerHTML = filas.map((x) => `
     <tr class="st-${x.estado}">
       <td>${fmtFecha(x.fecha)}</td>
       <td>${escapar(x.desc || '—')}</td>
-      <td class="r mono">${fmtMonto(x.monto)}</td>
-      <td>${x.origen}</td>
-      <td><span class="pill ${x.estado}">${etiquetas[x.estado]}</span><small>${escapar(x.nota)}</small></td>
-    </tr>`).join('') || '<tr><td colspan="5" class="muted">Sin movimientos en esta vista.</td></tr>';
+      <td class="r mono ${x.monto < 0 ? 'neg' : ''}">${fmtMonto(x.monto)}</td>
+      <td><span class="origen">${ico(ICONO_ORIGEN[x.origen])}${x.origen}</span></td>
+      <td><span class="pill ${x.estado}">${ico(ICONO_ESTADO[x.estado])}${ETIQUETAS[x.estado]}</span><small>${escapar(x.nota)}</small></td>
+    </tr>`).join('') ||
+    `<tr><td colspan="5" class="empty">${ico('inbox')}No hay movimientos en esta vista.</td></tr>`;
   $('results').hidden = false;
+  marcarPaso(3);
 }
 
 $('btnConciliar').addEventListener('click', () => {
   const mapaM = leerMapa('mayor'), mapaB = leerMapa('banco');
   for (const [nombre, mapa] of [['libro mayor', mapaM], ['extracto', mapaB]]) {
     if (!mapa.fecha || (!mapa.monto && !mapa.debito && !mapa.credito)) {
-      alert(`Elegí al menos la columna de fecha y la de monto (o débito/crédito) para el ${nombre}.`);
+      aviso(`Falta elegir la fecha y el monto (o débito/crédito) del ${nombre}.`);
       return;
     }
   }
   const mov = extraerMovimientos(state.mayor, mapaM);
   const ext = extraerMovimientos(state.banco, mapaB);
+  if (!mov.length || !ext.length) {
+    aviso('No encontramos montos válidos. Revisá que la columna de monto sea la correcta.');
+    return;
+  }
   const tolM = Math.max(0, parseFloat($('tolMonto').value) || 0);
   const tolD = Math.max(0, parseInt($('tolDias').value, 10) || 0);
   state.resultado = conciliar(mov, ext, tolM, tolD);
+  state.filtro = 'all';
+  document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x.dataset.f === 'all'));
   renderResultados();
-  $('results').scrollIntoView({ behavior: 'smooth' });
+  $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
@@ -258,19 +306,69 @@ document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () 
 }));
 
 $('btnExportar').addEventListener('click', () => {
-  const etiquetas = { ok: 'Conciliado', mayor: 'Solo en mayor', banco: 'Solo en banco' };
   const datos = state.resultado.map((x) => ({
     Fecha: x.fecha ?? '',
     Descripción: x.desc,
     Monto: x.monto,
     Origen: x.origen,
-    Estado: etiquetas[x.estado],
+    Estado: ETIQUETAS[x.estado],
     Observación: x.nota,
   }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datos, { cellDates: true }), 'Conciliación');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datos.filter((d) => d.Estado !== 'Conciliado')), 'Pendientes');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datos.filter((d) => d.Estado !== 'Conciliado'), { cellDates: true }), 'Pendientes');
   XLSX.writeFile(wb, `conciliacion_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  aviso('Excel descargado.');
+});
+
+$('btnReiniciar').addEventListener('click', () => {
+  state.mayor = state.banco = null;
+  state.resultado = [];
+  for (const t of ['Mayor', 'Banco']) {
+    $('file' + t).value = '';
+    $('drop' + t).classList.remove('loaded', 'error');
+    $('hint' + t).innerHTML = `${ico('upload')}Arrastrá o hacé clic · .xlsx .xls .csv`;
+  }
+  $('mapping').hidden = true;
+  $('results').hidden = true;
+  marcarPaso(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Datos de ejemplo: un mes chico con casos típicos (acreditación con días de demora,
+// débito/crédito separados, comisión bancaria sin registrar y un cheque no cobrado).
+$('btnDemo').addEventListener('click', () => {
+  state.mayor = armarTabla([
+    ['Fecha', 'Concepto', 'Importe'],
+    ['01/10/2026', 'Cobro factura A-0012 · Ferretería Sur', '185.400,00'],
+    ['02/10/2026', 'Pago proveedor Insumos Litoral', '-92.750,50'],
+    ['05/10/2026', 'Transferencia cliente Agro Federal', '310.000,00'],
+    ['07/10/2026', 'Pago alquiler oficina', '-240.000,00'],
+    ['10/10/2026', 'Cheque emitido N° 4471', '-58.300,00'],
+    ['14/10/2026', 'Cobro factura A-0015 · Estudio Paz', '96.800,00'],
+    ['20/10/2026', 'Pago servicios (luz)', '-31.245,90'],
+  ]);
+  state.banco = armarTabla([
+    ['Banco de Ejemplo · Extracto de cuenta corriente'],
+    ['Período: octubre 2026'],
+    [],
+    ['Fecha', 'Descripción', 'Débito', 'Crédito'],
+    ['01/10/2026', 'TRANSF RECIBIDA FERRETERIA SUR', '', '185.400,00'],
+    ['03/10/2026', 'TRANSF ENVIADA INSUMOS LITORAL', '92.750,50', ''],
+    ['07/10/2026', 'TRANSF RECIBIDA AGRO FEDERAL', '', '310.000,00'],
+    ['07/10/2026', 'DEBITO ALQUILER', '240.000,00', ''],
+    ['15/10/2026', 'TRANSF RECIBIDA ESTUDIO PAZ', '', '96.800,00'],
+    ['20/10/2026', 'PAGO SERVICIOS EDEER', '31.245,90', ''],
+    ['31/10/2026', 'COMISION MANTENIMIENTO CUENTA', '8.500,00', ''],
+    ['31/10/2026', 'IMP. LEY 25413 DEB/CRED', '5.890,20', ''],
+  ]);
+  for (const [t, n] of [['Mayor', 'libro_mayor_ejemplo.xlsx'], ['Banco', 'extracto_ejemplo.xlsx']]) {
+    $('drop' + t).classList.remove('error');
+    $('drop' + t).classList.add('loaded');
+    $('hint' + t).innerHTML = `${ico('check')}${n} · ${state[t.toLowerCase()].rows.length} filas`;
+  }
+  renderMapeo();
+  aviso('Cargamos datos de ejemplo. Revisá las columnas y tocá "Conciliar ahora".');
 });
 
 configurarCarga('mayor', 'fileMayor', 'dropMayor', 'hintMayor');

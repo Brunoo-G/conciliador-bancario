@@ -5,64 +5,134 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Conciliador Bancario</title>
   <meta name="description" content="Conciliación bancaria en el navegador: compará tu libro mayor contra el extracto del banco.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f5f4a'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+  <!-- Íconos (trazos estilo lineal, 24×24) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6.5A2.5 2.5 0 0 0 4 21.5Z"/><path d="M8 7h7M8 11h5"/></symbol>
+      <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 21.5 20h-19Z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+      <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 4v16M7 20h10M5 7h14"/><path d="M5 7 2.5 13a3 3 0 0 0 5 0Z M19 7l-2.5 6a3 3 0 0 0 5 0Z"/></symbol>
+      <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7Z"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+      <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10 21l8-10.5h-6Z"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13h5l1.5 3h5l1.5-3h5"/><path d="M5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Z"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></symbol>
+    </defs>
+  </svg>
+
   <main class="wrap">
     <header class="hero">
-      <span class="tag">MVP · versión prototipo</span>
-      <h1>Conciliador Bancario</h1>
-      <p>Subí tu libro mayor y el extracto del banco. La comparación se hace en tu navegador: los archivos nunca salen de tu computadora.</p>
+      <div class="brand">
+        <span class="brand-mark"><svg><use href="#i-scale"/></svg></span>
+        <span class="tag">MVP · versión prototipo</span>
+      </div>
+      <h1>Conciliá tu banco en minutos</h1>
+      <p>Subí el libro mayor y el extracto bancario. Te mostramos qué coincide, qué falta registrar y qué no figura en el banco.</p>
+      <ul class="perks">
+        <li><svg><use href="#i-lock"/></svg>Tus archivos no salen de tu computadora</li>
+        <li><svg><use href="#i-zap"/></svg>Detecta columnas automáticamente</li>
+        <li><svg><use href="#i-download"/></svg>Exporta el resultado a Excel</li>
+      </ul>
     </header>
+
+    <ol class="steps" aria-label="Pasos">
+      <li class="active" data-step="1"><span>1</span>Subir archivos</li>
+      <li data-step="2"><span>2</span>Revisar columnas</li>
+      <li data-step="3"><span>3</span>Ver resultados</li>
+    </ol>
 
     <section class="panel uploads">
       <label class="drop" id="dropMayor">
         <input type="file" id="fileMayor" accept=".xlsx,.xls,.csv" hidden>
-        <span class="drop-title">1 · Libro mayor</span>
-        <span class="drop-hint" id="hintMayor">Arrastrá o elegí un .xlsx / .csv</span>
+        <span class="drop-icon"><svg><use href="#i-book"/></svg></span>
+        <span class="drop-title">Libro mayor</span>
+        <span class="drop-sub">Tu registro contable de la cuenta</span>
+        <span class="drop-hint" id="hintMayor"><svg><use href="#i-upload"/></svg>Arrastrá o hacé clic · .xlsx .xls .csv</span>
       </label>
       <label class="drop" id="dropBanco">
         <input type="file" id="fileBanco" accept=".xlsx,.xls,.csv" hidden>
-        <span class="drop-title">2 · Extracto bancario</span>
-        <span class="drop-hint" id="hintBanco">Arrastrá o elegí un .xlsx / .csv</span>
+        <span class="drop-icon"><svg><use href="#i-bank"/></svg></span>
+        <span class="drop-title">Extracto bancario</span>
+        <span class="drop-sub">El archivo que descargás del home banking</span>
+        <span class="drop-hint" id="hintBanco"><svg><use href="#i-upload"/></svg>Arrastrá o hacé clic · .xlsx .xls .csv</span>
       </label>
+      <p class="demo">¿No tenés archivos a mano?
+        <button id="btnDemo" class="link-btn" type="button"><svg><use href="#i-zap"/></svg>Probar con datos de ejemplo</button>
+      </p>
     </section>
 
     <section class="panel" id="mapping" hidden>
-      <h2>Columnas detectadas</h2>
-      <p class="muted">Revisá que cada campo apunte a la columna correcta. Si el monto viene separado en débito y crédito, elegí ambas.</p>
+      <div class="panel-head">
+        <span class="panel-icon"><svg><use href="#i-columns"/></svg></span>
+        <div>
+          <h2>Revisá las columnas</h2>
+          <p class="muted">Las detectamos solas. Si alguna no es correcta, cambiala. Si el monto viene en débito y crédito por separado, elegí esas dos.</p>
+        </div>
+      </div>
       <div class="map-grid">
-        <div class="map-col" id="mapMayor"><h3>Libro mayor</h3></div>
-        <div class="map-col" id="mapBanco"><h3>Extracto</h3></div>
+        <div class="map-col" id="mapMayor"><h3><svg><use href="#i-book"/></svg>Libro mayor</h3></div>
+        <div class="map-col" id="mapBanco"><h3><svg><use href="#i-bank"/></svg>Extracto</h3></div>
       </div>
-      <div class="opts">
-        <label>Tolerancia de monto ($)
-          <input type="number" id="tolMonto" value="0.01" step="0.01" min="0">
-        </label>
-        <label>Tolerancia de fecha (días)
-          <input type="number" id="tolDias" value="2" step="1" min="0">
-        </label>
-      </div>
-      <button id="btnConciliar" class="btn primary">Conciliar</button>
+      <details class="opts">
+        <summary><svg><use href="#i-sliders"/></svg>Ajustes de tolerancia</summary>
+        <div class="opts-body">
+          <label>Diferencia de monto aceptada ($)
+            <input type="number" id="tolMonto" value="0.01" step="0.01" min="0">
+          </label>
+          <label>Diferencia de días aceptada
+            <input type="number" id="tolDias" value="2" step="1" min="0">
+          </label>
+        </div>
+      </details>
+      <button id="btnConciliar" class="btn primary big"><svg><use href="#i-play"/></svg>Conciliar ahora</button>
     </section>
 
     <section class="panel" id="results" hidden>
+      <div class="panel-head">
+        <span class="panel-icon"><svg><use href="#i-list"/></svg></span>
+        <div>
+          <h2>Resultado</h2>
+          <p class="muted" id="resumen"></p>
+        </div>
+      </div>
+
+      <div class="progress" aria-hidden="true"><span id="barOk"></span></div>
+
       <div class="stats">
-        <div class="stat"><span class="n" id="stOk">0</span><span>Conciliados</span></div>
-        <div class="stat warn"><span class="n" id="stMayor">0</span><span>Solo en mayor</span></div>
-        <div class="stat warn"><span class="n" id="stBanco">0</span><span>Solo en banco</span></div>
-        <div class="stat"><span class="n" id="stDif">$0</span><span>Diferencia neta</span></div>
+        <div class="stat ok"><svg><use href="#i-check"/></svg><span class="n" id="stOk">0</span><span>Conciliados</span></div>
+        <div class="stat warn"><svg><use href="#i-alert"/></svg><span class="n" id="stMayor">0</span><span>Solo en mayor</span></div>
+        <div class="stat bad"><svg><use href="#i-x"/></svg><span class="n" id="stBanco">0</span><span>Solo en banco</span></div>
+        <div class="stat neutral"><svg><use href="#i-scale"/></svg><span class="n" id="stDif">$0</span><span>Diferencia neta</span></div>
       </div>
-      <div class="tabs">
-        <button class="tab active" data-f="all">Todos</button>
-        <button class="tab" data-f="ok">Conciliados</button>
-        <button class="tab" data-f="mayor">Solo en mayor</button>
-        <button class="tab" data-f="banco">Solo en banco</button>
-        <button id="btnExportar" class="btn ghost">Descargar Excel</button>
+
+      <div class="toolbar">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-f="all">Todos<b class="count" id="cAll"></b></button>
+          <button class="tab" data-f="ok"><i class="dot ok"></i>Conciliados<b class="count" id="cOk"></b></button>
+          <button class="tab" data-f="mayor"><i class="dot warn"></i>Solo en mayor<b class="count" id="cMayor"></b></button>
+          <button class="tab" data-f="banco"><i class="dot bad"></i>Solo en banco<b class="count" id="cBanco"></b></button>
+        </div>
+        <div class="actions">
+          <button id="btnReiniciar" class="btn ghost"><svg><use href="#i-refresh"/></svg>Empezar de nuevo</button>
+          <button id="btnExportar" class="btn primary"><svg><use href="#i-download"/></svg>Descargar Excel</button>
+        </div>
       </div>
+
       <div class="table-wrap">
         <table>
           <thead><tr><th>Fecha</th><th>Descripción</th><th class="r">Monto</th><th>Origen</th><th>Estado</th></tr></thead>
@@ -72,10 +142,12 @@
     </section>
 
     <footer class="foot">
-      Prototipo / MVP: revisá los resultados antes de usarlos en tus registros.<br>
-      Hecho por Bruno · <a href="https://conciliador-banck.netlify.app" target="_blank" rel="noopener">conciliador-banck.netlify.app</a>
+      <p><svg><use href="#i-alert"/></svg>Prototipo / MVP: revisá los resultados antes de usarlos en tus registros.</p>
+      <p>Hecho por Bruno · <a href="https://conciliador-banck.netlify.app" target="_blank" rel="noopener">conciliador-banck.netlify.app</a></p>
     </footer>
   </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
 </html>
