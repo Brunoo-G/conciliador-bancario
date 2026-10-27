@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conciliador Bancario</title>
+  <meta name="description" content="Conciliación bancaria en el navegador: compará tu libro mayor contra el extracto del banco.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <span class="tag">MVP · versión prototipo</span>
+      <h1>Conciliador Bancario</h1>
+      <p>Subí tu libro mayor y el extracto del banco. La comparación se hace en tu navegador: los archivos nunca salen de tu computadora.</p>
+    </header>
+
+    <section class="panel uploads">
+      <label class="drop" id="dropMayor">
+        <input type="file" id="fileMayor" accept=".xlsx,.xls,.csv" hidden>
+        <span class="drop-title">1 · Libro mayor</span>
+        <span class="drop-hint" id="hintMayor">Arrastrá o elegí un .xlsx / .csv</span>
+      </label>
+      <label class="drop" id="dropBanco">
+        <input type="file" id="fileBanco" accept=".xlsx,.xls,.csv" hidden>
+        <span class="drop-title">2 · Extracto bancario</span>
+        <span class="drop-hint" id="hintBanco">Arrastrá o elegí un .xlsx / .csv</span>
+      </label>
+    </section>
+
+    <section class="panel" id="mapping" hidden>
+      <h2>Columnas detectadas</h2>
+      <p class="muted">Revisá que cada campo apunte a la columna correcta. Si el monto viene separado en débito y crédito, elegí ambas.</p>
+      <div class="map-grid">
+        <div class="map-col" id="mapMayor"><h3>Libro mayor</h3></div>
+        <div class="map-col" id="mapBanco"><h3>Extracto</h3></div>
+      </div>
+      <div class="opts">
+        <label>Tolerancia de monto ($)
+          <input type="number" id="tolMonto" value="0.01" step="0.01" min="0">
+        </label>
+        <label>Tolerancia de fecha (días)
+          <input type="number" id="tolDias" value="2" step="1" min="0">
+        </label>
+      </div>
+      <button id="btnConciliar" class="btn primary">Conciliar</button>
+    </section>
+
+    <section class="panel" id="results" hidden>
+      <div class="stats">
+        <div class="stat"><span class="n" id="stOk">0</span><span>Conciliados</span></div>
+        <div class="stat warn"><span class="n" id="stMayor">0</span><span>Solo en mayor</span></div>
+        <div class="stat warn"><span class="n" id="stBanco">0</span><span>Solo en banco</span></div>
+        <div class="stat"><span class="n" id="stDif">$0</span><span>Diferencia neta</span></div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-f="all">Todos</button>
+        <button class="tab" data-f="ok">Conciliados</button>
+        <button class="tab" data-f="mayor">Solo en mayor</button>
+        <button class="tab" data-f="banco">Solo en banco</button>
+        <button id="btnExportar" class="btn ghost">Descargar Excel</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Descripción</th><th class="r">Monto</th><th>Origen</th><th>Estado</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Prototipo / MVP: revisá los resultados antes de usarlos en tus registros.<br>
+      Hecho por Bruno · <a href="https://conciliador-banck.netlify.app" target="_blank" rel="noopener">conciliador-banck.netlify.app</a>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
