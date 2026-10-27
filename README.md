@@ -22,7 +22,3 @@ No requiere instalación. Abrí `index.html` en el navegador o serví la carpeta
 ## Deploy
 
 Sitio estático publicado en Netlify (sin build command, publish directory `/`).
-
-## Créditos
-
-Basado en una idea de [LuMarka/ComparadorExcel](https://github.com/LuMarka/ComparadorExcel).
